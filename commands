@@ -2,6 +2,17 @@
 set -eo pipefail
 [[ $DOKKU_TRACE ]] && set -x
 
+fail() {
+    echo "$@" 1>&2
+    exit 1
+}
+
+check_container() {
+  if [[ -z "$ID" ]]; then
+    fail "Gnatsd container not started cannot continue. Start with dokku gnatsd:start"
+  fi
+}
+
 # Check if name is specified
 if [[ $1 == gnatsd:* ]]; then
     if [ -z $2 ]; then
@@ -13,10 +24,7 @@ if [[ $1 == gnatsd:* ]]; then
             APP_EXISTS=false
         fi
     fi
-    if [[ ! -d "$PLUGIN_PATH/link" ]]; then
-        echo "Link plugin not found... Did you install it from https://github.com/rlaneve/dokku-link?"
-        exit 1
-    fi
+
     PLUGIN_NAME="gnatsd"
     PLUGIN_ALIAS="gnatsd"
     CONTAINER_NAME="gnatsd"
@@ -24,31 +32,37 @@ if [[ $1 == gnatsd:* ]]; then
     CONTAINER_IMAGE="apcera/gnatsd"
     GNATSD_PORT=4222
     MONITOR_PORT=8333
+    GNATSD_PASS=$(cat "$DOKKU_ROOT/.$PLUGIN_NAME/admin_pw")
+
+    ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
+
+    if [[ -n "$ID" ]]; then
+        GNATSD_PRIVATE_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' ${ID})
+    fi
+
 fi
+
 
 case "$1" in
 
-  gnatsd:create)
+  gnatsd:start)
     # Check if Gnatsd image is installed
     IMAGE=$(docker images | grep "$CONTAINER_IMAGE" |  awk '{print $3}')
     if [[ -z $IMAGE ]]; then
-        echo "gnatsd image not found... Did you run 'dokku plugins-install' ?"
-        exit 1
+        fail "gnatsd image not found... Did you run 'dokku plugins-install' ?"
     fi
     # check for existing container with the same persistent gnatsd
-    ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
     if [[ ! -z "$ID" ]]; then
-        echo
-        echo "-----> Container $CONTAINER_NAME already exist. Please use rebuild or delete command"
-        exit 1
+        echo "" 1>&2
+        fail "-----> Container $CONTAINER_NAME already exist. Please use rebuild or delete command"
     fi
     if [[ ! -d "$HOST_DIR" ]]; then
         mkdir -p "$HOST_DIR"
     fi
     # Check if an existing storage volume exists
     if [[ -d "$HOST_DIR/storage" ]]; then
-        echo
-        echo "-----> Reusing $PLUGIN_NAME storage"
+        echo "" 1>&2
+        fail "-----> Reusing $PLUGIN_NAME storage"
     else
         mkdir -p "$HOST_DIR/storage"
     fi
@@ -68,17 +82,14 @@ case "$1" in
     fi
     VOLUME="$HOST_DIR/storage:/opt/gnatsd/persistent-storage"
     # Launch container
-    ID=$(docker run -v $VOLUME -p 127.0.0.1:$PORT_GNATSD:$GNATSD_PORT -p 127.0.0.1:$PORT_MONITOR:$MONITOR_PORT --name $CONTAINER_NAME -d $CONTAINER_IMAGE)
+    ID=$(docker run -v $VOLUME -p 127.0.0.1:$PORT_GNATSD:$GNATSD_PORT -p 127.0.0.1:$PORT_MONITOR:$MONITOR_PORT --name $CONTAINER_NAME -d $CONTAINER_IMAGE -u user -p $GNATSD_PASS )
     sleep 1
     # store exposed ports
     PORT_GNATSD=$(docker port $ID $GNATSD_PORT | sed 's/127.0.0.1://')
     PORT_MONITOR=$(docker port $ID $MONITOR_PORT | sed 's/127.0.0.1://')
     echo $PORT_GNATSD > "$HOST_DIR/PORT_GNATSD"
     echo $PORT_MONITOR > "$HOST_DIR/PORT_MONITOR"
-    # Link to a potential existing app 
-    if [[ ! -z "$APP" ]]; then
-        dokku gnatsd:link $CONTAINER_NAME $APP
-    fi
+
     echo
     echo "-----> Gnatsd container $CONTAINER_NAME created (using $CONTAINER_IMAGE)"
     sleep 1
@@ -94,7 +105,7 @@ case "$1" in
         docker rm $ID > /dev/null
     fi
     #TODO: create gnatsd without an app
-    dokku gnatsd:create
+    dokku gnatsd:start
     ;;
 
   gnatsd:delete)
@@ -141,10 +152,19 @@ case "$1" in
     if $APP_EXISTS; then
         #ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
         #IP=$(docker inspect $ID | grep IPAddress | awk '{ print $2 }' | tr -d ',"')
-        dokku link:create "$APP" "$CONTAINER_NAME" "$PLUGIN_ALIAS"
-        echo "$APP" >> "$HOST_DIR/linked_apps"
+        #dokku link:create "$APP" "$CONTAINER_NAME" "$PLUGIN_ALIAS"
+        #echo "$APP" >> "$HOST_DIR/linked_apps"
+        #echo
+        #echo "-----> $APP linked to $CONTAINER_NAME container"
+        dokku config:set-norestart "$APP" \
+            GNATSD_HOST="$GNATSD_PRIVATE_IP" \
+            GNATSD_PORT="$GNATSD_PORT" \
+            GNATSD_USERNAME="user" \
+            GNATSD_PASSWORD="$GNATSD_PASS" \
+            NATS_URL="nats://user:${GNATSD_PASS}@${GNATSD_PRIVATE_IP}:${GNATSD_PORT}" 
+
         echo
-        echo "-----> $APP linked to $CONTAINER_NAME container"
+        echo "-----> $APP linked to gnatsd container"
     fi
     ;;
 
@@ -163,7 +183,7 @@ case "$1" in
 
   help)
     cat && cat<<EOF
-    gnatsd:create [<app>]                         Create a Gnatsd container [and link the <app>]
+    gnatsd:start                                  Starts the Gnatsd container
     gnatsd:rebuild                                Rebuild Gnatsd container (keep persistend data)
     gnatsd:delete                                 Delete Gnatsd container
     gnatsd:info                                   Display Gnatsd container informations

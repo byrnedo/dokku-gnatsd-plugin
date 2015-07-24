@@ -4,3 +4,12 @@
 echo "pulling gnatsd image"
 # Build docker image
 docker pull apcera/gnatsd:latest
+
+if [[ ! -d "$DOKKU_ROOT/.gnatsd" ]]; then
+    mkdir -p "$DOKKU_ROOT/.gnatsd/storage"
+
+    admin_pass=$(openssl rand -base64 32|base64)
+    echo $admin_pass > "$DOKKU_ROOT/.gnatsd/admin_pw"
+
+    chown -R dokku: "$DOKKU_ROOT/.gnatsd"
+fi
