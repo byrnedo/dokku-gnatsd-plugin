@@ -81,7 +81,7 @@ case "$1" in
     fi
     VOLUME="$HOST_DIR/storage:/opt/gnatsd/persistent-storage"
     # Launch container
-    ID=$(docker run -v $VOLUME -p 127.0.0.1:$PORT_GNATSD:$GNATSD_PORT -p 127.0.0.1:$PORT_MONITOR:$MONITOR_PORT --name $CONTAINER_NAME -d $CONTAINER_IMAGE -u user -p $GNATSD_PASS )
+    ID=$(docker run -v $VOLUME -p 127.0.0.1:$PORT_GNATSD:$GNATSD_PORT -p 127.0.0.1:$PORT_MONITOR:$MONITOR_PORT --name $CONTAINER_NAME -d $CONTAINER_IMAGE --user user --pass $GNATSD_PASS )
     sleep 1
     # store exposed ports
     PORT_GNATSD=$(docker port $ID $GNATSD_PORT | sed 's/127.0.0.1://')
