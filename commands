@@ -31,6 +31,9 @@ if [[ $1 == gnatsd:* ]]; then
     CONTAINER_IMAGE="apcera/gnatsd"
     GNATSD_PORT=4222
     MONITOR_PORT=8333
+    if [[ ! -f $DOKKU_ROOT/.$PLUGIN_NAME/admin_pw ]]; then
+        fail "Gnatsd password not set in $DOKKU_ROOT/.$PLUGIN_NAME/admin_pw. Did you run 'dokku plugins-install'?"
+    fi
     GNATSD_PASS=$(cat "$DOKKU_ROOT/.$PLUGIN_NAME/admin_pw")
 
     ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
