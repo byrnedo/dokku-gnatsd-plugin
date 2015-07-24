@@ -152,7 +152,7 @@ case "$1" in
   gnatsd:link)
     APP="$2"
     if $APP_EXISTS; then
-        dokku config:set --norestart "$APP" \
+        dokku config:set --no-restart "$APP" \
             GNATSD_HOST="$GNATSD_PRIVATE_IP" \
             GNATSD_PORT="$GNATSD_PORT" \
             GNATSD_USERNAME="user" \
