@@ -1,0 +1,179 @@
+#!/usr/bin/env bash
+set -eo pipefail
+[[ $DOKKU_TRACE ]] && set -x
+
+# Check if name is specified
+if [[ $1 == gnatsd:* ]]; then
+    if [ -z $2 ]; then
+        APP="$2"
+        # Check if app exists with the same name
+        if [[ -d "$DOKKU_ROOT/$APP" ]]; then
+            APP_EXISTS=true
+        else
+            APP_EXISTS=false
+        fi
+    fi
+    if [[ ! -d "$PLUGIN_PATH/link" ]]; then
+        echo "Link plugin not found... Did you install it from https://github.com/rlaneve/dokku-link?"
+        exit 1
+    fi
+    PLUGIN_NAME="gnatsd"
+    PLUGIN_ALIAS="gnatsd"
+    CONTAINER_NAME="gnatsd"
+    HOST_DIR="$DOKKU_ROOT/.$PLUGIN_NAME/storage"
+    CONTAINER_IMAGE="apcera/gnatsd"
+    GNATSD_PORT=4222
+    MONITOR_PORT=8333
+fi
+
+case "$1" in
+
+  gnatsd:create)
+    # Check if Gnatsd image is installed
+    IMAGE=$(docker images | grep "$CONTAINER_IMAGE" |  awk '{print $3}')
+    if [[ -z $IMAGE ]]; then
+        echo "gnatsd image not found... Did you run 'dokku plugins-install' ?"
+        exit 1
+    fi
+    # check for existing container with the same persistent gnatsd
+    ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
+    if [[ ! -z "$ID" ]]; then
+        echo
+        echo "-----> Container $CONTAINER_NAME already exist. Please use rebuild or delete command"
+        exit 1
+    fi
+    if [[ ! -d "$HOST_DIR" ]]; then
+        mkdir -p "$HOST_DIR"
+    fi
+    # Check if an existing storage volume exists
+    if [[ -d "$HOST_DIR/storage" ]]; then
+        echo
+        echo "-----> Reusing $PLUGIN_NAME storage"
+    else
+        mkdir -p "$HOST_DIR/storage"
+    fi
+    # Check if gnatsd port already allocated
+    if [[ -f "$HOST_DIR/PORT_GNATSD" ]]; then
+        echo "-----> Reusing $PLUGIN_NAME gnatsd port"
+        PORT_GNATSD=$(cat "$HOST_DIR/PORT_GNATSD")
+    else
+        PORT_GNATSD=""
+    fi
+    # Check if monitor port already allocated
+    if [[ -f "$HOST_DIR/PORT_MONITOR" ]]; then
+        echo "-----> Reusing $PLUGIN_NAME monitor port"
+        PORT_MONITOR=$(cat "$HOST_DIR/PORT_MONITOR")
+    else
+        PORT_MONITOR=""
+    fi
+    VOLUME="$HOST_DIR/storage:/opt/gnatsd/persistent-storage"
+    # Launch container
+    ID=$(docker run -v $VOLUME -p 127.0.0.1:$PORT_GNATSD:$GNATSD_PORT -p 127.0.0.1:$PORT_MONITOR:$MONITOR_PORT --name $CONTAINER_NAME -d $CONTAINER_IMAGE)
+    sleep 1
+    # store exposed ports
+    PORT_GNATSD=$(docker port $ID $GNATSD_PORT | sed 's/127.0.0.1://')
+    PORT_MONITOR=$(docker port $ID $MONITOR_PORT | sed 's/127.0.0.1://')
+    echo $PORT_GNATSD > "$HOST_DIR/PORT_GNATSD"
+    echo $PORT_MONITOR > "$HOST_DIR/PORT_MONITOR"
+    # Link to a potential existing app 
+    if [[ ! -z "$APP" ]]; then
+        dokku gnatsd:link $CONTAINER_NAME $APP
+    fi
+    echo
+    echo "-----> Gnatsd container $CONTAINER_NAME created (using $CONTAINER_IMAGE)"
+    sleep 1
+    dokku gnatsd:info $CONTAINER_NAME
+    ;;
+  
+  gnatsd:rebuild)
+    ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
+    if [[ ! -z "$ID" ]]; then
+        echo
+        echo "-----> Stopping & removing $CONTAINER_NAME container"
+        docker stop $ID > /dev/null
+        docker rm $ID > /dev/null
+    fi
+    #TODO: create gnatsd without an app
+    dokku gnatsd:create
+    ;;
+
+  gnatsd:delete)
+    echo
+    echo "-----> This will permanently remove all the stored data. Are you sure (yes/no)?"
+    read ANSWER
+    if [[ $ANSWER == "yes" ]]; then
+        # Stop the container
+        ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
+        if [[ ! -z $ID ]]; then
+            docker stop $ID > /dev/null
+            docker rm $ID > /dev/null
+        fi
+
+        dokku link:delete "$APP" "$CONTAINER_NAME" "$PLUGIN_ALIAS"
+
+        # Remove persistent volume
+        if [[ -d "$HOST_DIR" ]]; then
+            rm -rf "$HOST_DIR"
+            echo
+            echo "-----> Deleted persistent storage for $CONTAINER_NAME"
+        fi
+        echo
+        echo "-----> Deleted Gnatsd container $CONTAINER_NAME"
+    fi
+    ;;
+
+  gnatsd:info)
+    ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
+    IP=$(docker inspect $ID | grep IPAddress | awk '{ print $2 }' | tr -d ',"')
+    DOCKER_GATEWAY=$(docker inspect $ID | grep Gateway | awk '{ print $2 }' | tr -d ',"')
+    PORT_GNATSD=$(docker port $ID $GNATSD_PORT)
+    PORT_MONITOR=$(docker port $ID $MONITOR_PORT)
+    echo
+    echo "       Host: $IP"
+    echo "       Gateway: $DOCKER_GATEWAY"
+    echo "       Web port: $GNATSD_PORT -> $PORT_GNATSD"
+    echo "       Carbon port: $MONITOR_PORT -> $PORT_MONITOR"
+    echo
+    ;;
+
+  gnatsd:link)
+    APP="$2"
+    if $APP_EXISTS; then
+        #ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
+        #IP=$(docker inspect $ID | grep IPAddress | awk '{ print $2 }' | tr -d ',"')
+        dokku link:create "$APP" "$CONTAINER_NAME" "$PLUGIN_ALIAS"
+        echo "$APP" >> "$HOST_DIR/linked_apps"
+        echo
+        echo "-----> $APP linked to $CONTAINER_NAME container"
+    fi
+    ;;
+
+  gnatsd:logs)
+    ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
+    docker logs $ID | tail -n 100
+    ;;
+
+  gnatsd:list)
+    CONTAINERS=$(cat "$HOST_DIR/linked_apps" | awk '{print $1}')
+    echo "GNATSD linked apps:"
+    for CONTAINER in $CONTAINERS; do
+        echo "  - $CONTAINER"
+    done
+    ;;
+
+  help)
+    cat && cat<<EOF
+    gnatsd:create [<app>]                         Create a Gnatsd container [and link the <app>]
+    gnatsd:rebuild                                Rebuild Gnatsd container (keep persistend data)
+    gnatsd:delete                                 Delete Gnatsd container
+    gnatsd:info                                   Display Gnatsd container informations
+    gnatsd:link <app>                             Link an <app> to the Gnatsd container
+    gnatsd:list                                   Display list of Gnatsd linked apps
+    gnatsd:logs                                   Display last logs from Gnatsd container
+EOF
+    ;;
+
+  *)
+    exit $DOKKU_NOT_IMPLEMENTED_EXIT
+    ;;
+esac
