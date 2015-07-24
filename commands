@@ -63,8 +63,8 @@ case "$1" in
     fi
     # Check if an existing storage volume exists
     if [[ -d "$HOST_DIR/storage" ]]; then
-        echo "" 1>&2
-        fail "-----> Reusing $PLUGIN_NAME storage"
+        echo 
+        echo "-----> Reusing $PLUGIN_NAME storage"
     else
         mkdir -p "$HOST_DIR/storage"
     fi
