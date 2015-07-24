@@ -157,7 +157,7 @@ case "$1" in
             GNATSD_PORT="$GNATSD_PORT" \
             GNATSD_USERNAME="user" \
             GNATSD_PASSWORD="$GNATSD_PASS" \
-            GNATS_URL="nats://user:${GNATSD_PASS}@${GNATSD_PRIVATE_IP}:${GNATSD_PORT}" 
+            GNATSD_URL="nats://user:${GNATSD_PASS}@${GNATSD_PRIVATE_IP}:${GNATSD_PORT}" 
 
         echo
         echo "-----> $APP linked to gnatsd container"
