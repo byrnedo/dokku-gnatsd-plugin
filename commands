@@ -26,7 +26,7 @@ if [[ $1 == gnatsd:* ]]; then
     fi
 
     PLUGIN_NAME="gnatsd"
-    CONTAINER_NAME="gnatsd"
+    CONTAINER_NAME="dokku-gnatsd"
     HOST_DIR="$DOKKU_ROOT/.$PLUGIN_NAME/storage"
     CONTAINER_IMAGE="apcera/gnatsd"
     GNATSD_PORT=4222
@@ -82,9 +82,8 @@ case "$1" in
     else
         PORT_MONITOR=""
     fi
-    VOLUME="$HOST_DIR/storage:/opt/gnatsd/persistent-storage"
     # Launch container
-    ID=$(docker run -v $VOLUME -p 127.0.0.1:$PORT_GNATSD:$GNATSD_PORT -p 127.0.0.1:$PORT_MONITOR:$MONITOR_PORT --name $CONTAINER_NAME -d $CONTAINER_IMAGE --user user --pass $GNATSD_PASS )
+    ID=$(docker run -p 127.0.0.1:$PORT_GNATSD:$GNATSD_PORT -p 127.0.0.1:$PORT_MONITOR:$MONITOR_PORT --name $CONTAINER_NAME -d $CONTAINER_IMAGE --user user --pass $GNATSD_PASS )
     sleep 1
     # store exposed ports
     PORT_GNATSD=$(docker port $ID $GNATSD_PORT | sed 's/127.0.0.1://')
