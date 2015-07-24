@@ -131,8 +131,8 @@ case "$1" in
     echo
     echo "       Host: $IP"
     echo "       Gateway: $DOCKER_GATEWAY"
-    echo "       Web port: $GNATSD_PORT -> $PORT_GNATSD"
-    echo "       Carbon port: $MONITOR_PORT -> $PORT_MONITOR"
+    echo "       Gnatsd port: $GNATSD_PORT -> $PORT_GNATSD"
+    echo "       Monitor port: $MONITOR_PORT -> $PORT_MONITOR"
     echo
     ;;
 
