@@ -26,7 +26,6 @@ if [[ $1 == gnatsd:* ]]; then
     fi
 
     PLUGIN_NAME="gnatsd"
-    PLUGIN_ALIAS="gnatsd"
     CONTAINER_NAME="gnatsd"
     HOST_DIR="$DOKKU_ROOT/.$PLUGIN_NAME/storage"
     CONTAINER_IMAGE="apcera/gnatsd"
@@ -120,7 +119,7 @@ case "$1" in
             docker rm $ID > /dev/null
         fi
 
-        dokku link:delete "$APP" "$CONTAINER_NAME" "$PLUGIN_ALIAS"
+        dokku gnatsd:unlink "$APP"
 
         # Remove persistent volume
         if [[ -d "$HOST_DIR" ]]; then
@@ -150,12 +149,6 @@ case "$1" in
   gnatsd:link)
     APP="$2"
     if $APP_EXISTS; then
-        #ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
-        #IP=$(docker inspect $ID | grep IPAddress | awk '{ print $2 }' | tr -d ',"')
-        #dokku link:create "$APP" "$CONTAINER_NAME" "$PLUGIN_ALIAS"
-        #echo "$APP" >> "$HOST_DIR/linked_apps"
-        #echo
-        #echo "-----> $APP linked to $CONTAINER_NAME container"
         dokku config:set-norestart "$APP" \
             GNATSD_HOST="$GNATSD_PRIVATE_IP" \
             GNATSD_PORT="$GNATSD_PORT" \
@@ -167,6 +160,18 @@ case "$1" in
         echo "-----> $APP linked to gnatsd container"
     fi
     ;;
+
+  gnatsd:unlink)
+      APP="$2"
+      if $APP_EXISTS; then
+          dokku config:unset "$APP" \
+              GNATSD_HOST \
+              GNATSD_PORT \
+              GNATSD_USERNAME \
+              GNATSD_PASSWORD \
+              GNATSD_URL" 
+      fi
+      ;;
 
   gnatsd:logs)
     ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
@@ -188,6 +193,7 @@ case "$1" in
     gnatsd:delete                                 Delete Gnatsd container
     gnatsd:info                                   Display Gnatsd container informations
     gnatsd:link <app>                             Link an <app> to the Gnatsd container
+    gnatsd:unlink <app>                           Unlink an <app> from the Gnatsd container
     gnatsd:list                                   Display list of Gnatsd linked apps
     gnatsd:logs                                   Display last logs from Gnatsd container
 EOF
