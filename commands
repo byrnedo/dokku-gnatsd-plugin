@@ -157,7 +157,7 @@ case "$1" in
             GNATSD_PORT="$GNATSD_PORT" \
             GNATSD_USERNAME="user" \
             GNATSD_PASSWORD="$GNATSD_PASS" \
-            NATS_URL="nats://user:${GNATSD_PASS}@${GNATSD_PRIVATE_IP}:${GNATSD_PORT}" 
+            GNATS_URL="nats://user:${GNATSD_PASS}@${GNATSD_PRIVATE_IP}:${GNATSD_PORT}" 
 
         echo
         echo "-----> $APP linked to gnatsd container"
@@ -181,13 +181,6 @@ case "$1" in
     docker logs $ID | tail -n 100
     ;;
 
-  gnatsd:list)
-    CONTAINERS=$(cat "$HOST_DIR/linked_apps" | awk '{print $1}')
-    echo "GNATSD linked apps:"
-    for CONTAINER in $CONTAINERS; do
-        echo "  - $CONTAINER"
-    done
-    ;;
 
   help)
     cat && cat<<EOF
@@ -197,7 +190,6 @@ case "$1" in
     gnatsd:info                                   Display Gnatsd container informations
     gnatsd:link <app>                             Link an <app> to the Gnatsd container
     gnatsd:unlink <app>                           Unlink an <app> from the Gnatsd container
-    gnatsd:list                                   Display list of Gnatsd linked apps
     gnatsd:logs                                   Display last logs from Gnatsd container
 EOF
     ;;
