@@ -169,7 +169,7 @@ case "$1" in
               GNATSD_PORT \
               GNATSD_USERNAME \
               GNATSD_PASSWORD \
-              GNATSD_URL" 
+              GNATSD_URL
       fi
       ;;
 
