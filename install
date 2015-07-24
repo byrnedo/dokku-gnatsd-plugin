@@ -1,4 +1,6 @@
 #!/bin/bash
+[[ $DOKKU_TRACE ]] && set -x
 
+echo "pulling gnatsd image"
 # Build docker image
 docker pull apcera/gnatsd:latest
