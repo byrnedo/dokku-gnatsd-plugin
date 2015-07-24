@@ -9,7 +9,7 @@ fail() {
 
 check_container() {
   if [[ -z "$ID" ]]; then
-    fail "Gnatsd container not started cannot continue. Start with dokku gnatsd:start"
+    fail "Gnatsd container not started, cannot continue. Start with dokku gnatsd:create"
   fi
 }
 
@@ -47,7 +47,7 @@ fi
 
 case "$1" in
 
-  gnatsd:start)
+  gnatsd:create)
     # Check if Gnatsd image is installed
     IMAGE=$(docker images | grep "$CONTAINER_IMAGE" |  awk '{print $3}')
     if [[ -z $IMAGE ]]; then
@@ -106,7 +106,7 @@ case "$1" in
         docker rm $ID > /dev/null
     fi
     #TODO: create gnatsd without an app
-    dokku gnatsd:start
+    dokku gnatsd:create
     ;;
 
   gnatsd:delete)
@@ -183,7 +183,7 @@ case "$1" in
 
   help)
     cat && cat<<EOF
-    gnatsd:start                                  Starts the Gnatsd container
+    gnatsd:create                                  Starts the Gnatsd container
     gnatsd:rebuild                                Rebuild Gnatsd container (keep persistend data)
     gnatsd:delete                                 Delete Gnatsd container
     gnatsd:info                                   Display Gnatsd container informations
