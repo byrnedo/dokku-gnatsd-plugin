@@ -30,7 +30,7 @@ Link it to your app, say it's called `foo`:
 
     $ dokku gnatsd:link foo
     
-of 
+or
 
     $ ssh dokku@server gnatsd:link foo
 
