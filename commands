@@ -149,6 +149,7 @@ case "$1" in
     ;;
 
   gnatsd:link)
+    check_container
     APP="$2"
     if $APP_EXISTS; then
         dokku config:set --no-restart "$APP" \
@@ -191,8 +192,5 @@ case "$1" in
     gnatsd:unlink <app>                           Unlink an <app> from the Gnatsd container
     gnatsd:logs                                   Display last logs from Gnatsd container
 EOF
-    ;;
-
-  *)
     ;;
 esac
