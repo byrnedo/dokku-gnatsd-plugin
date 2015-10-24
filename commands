@@ -28,7 +28,7 @@ if [[ $1 == gnatsd:* ]]; then
     PLUGIN_NAME="gnatsd"
     CONTAINER_NAME="dokku-gnatsd"
     HOST_DIR="$DOKKU_ROOT/.$PLUGIN_NAME/storage"
-    CONTAINER_IMAGE="apcera/gnatsd"
+    CONTAINER_IMAGE="nats"
     GNATSD_PORT=4222
     MONITOR_PORT=8333
     if [[ ! -f $DOKKU_ROOT/.$PLUGIN_NAME/admin_pw ]]; then

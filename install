@@ -3,7 +3,7 @@
 
 echo "pulling gnatsd image"
 # Build docker image
-docker pull apcera/gnatsd:latest
+docker pull nats:latest
 
 if [[ ! -d "$DOKKU_ROOT/.gnatsd" ]]; then
     mkdir -p "$DOKKU_ROOT/.gnatsd/storage"
