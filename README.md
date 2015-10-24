@@ -40,6 +40,6 @@ this will expose the following environment variables to the app `foo`:
     GNATSD_PORT
     GNATSD_USERNAME
     GNATSD_PASSWORD
-    GNATS_URL
+    GNATSD_URL
     
 
