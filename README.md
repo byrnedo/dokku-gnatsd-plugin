@@ -6,7 +6,7 @@ Simple plugin to link a single instance [gnatsd](http://nats.io/) queue to an ap
 
 ## Installation
 
-    https://github.com/byrnedo/dokku-gnatsd-plugin.git /var/lib/dokku/plugins/gnatsd
+    git clone https://github.com/byrnedo/dokku-gnatsd-plugin.git /var/lib/dokku/plugins/gnatsd
     dokku plugins-install
 
 ## Commands 
