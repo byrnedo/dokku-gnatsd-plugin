@@ -1,6 +1,7 @@
 # dokku-gnatsd-plugin
 
-[![Join the chat at https://gitter.im/byrnedo/dokku-gnatsd-plugin](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/byrnedo/dokku-gnatsd-plugin?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+## DEPRECATED
+This project is now old and senile, please use [dokku-nats](http://github.com/byrnedo/dokku-nats) instead.
 
 Simple plugin to link a single instance [gnatsd](http://nats.io/) queue to an app
 
